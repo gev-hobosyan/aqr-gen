@@ -1,89 +1,11 @@
-struct QRCode {
-    mode: u8,
-    version: u8,
-    string_length: usize,
-    codewords: u8,
-    data: Vec<u8>
-}
+mod gf_math;
+mod qr_code;
 
-impl QRCode {
-    pub fn encode(version: u8, string: String) -> QRCode {
-        // TODO: use string_length to decide the version
-        let string_length = string.len();
-        // TODO: dynamic mode choosing
-        let mode = 0b0100 << 4;
-        // TODO: assign codewords dependant on the version
-        let codewords = 28u8;
-
-        let mut data = vec![0; codewords as usize];
-
-        let mut byte;
-
-        byte = mode | (string_length as u8 >> 4);
-
-        data[0] = byte;
-        data[1] = (string_length as u8) << 4;
-
-        let chars: Vec<char> = string.chars().collect();
-
-        for (i, ch) in string.chars().enumerate() {
-            if i == 0 {
-                data[1] = data[1] | (ch as u8 >> 4);
-                continue;
-            }
-
-            let lch = chars[i - 1] as u8;
-
-            data[i + 1] = (lch << 4) | (ch as u8 >> 4);
-
-            if i + 1 == string_length {
-                data[string_length + 1] = (ch as u8) << 4;
-            }
-        }
-
-        let rsi = string_length + 2;
-        let constant = rsi % 2;
-        let placeholders = [236, 17];
-
-        for i in rsi..(codewords as usize) {
-            let index = (i + constant) % 2;
-
-            data[i] = placeholders[index];
-        }
-
-        QRCode {
-            mode,
-            version,
-            string_length,
-            codewords,
-            data
-        }
-    }
-
-    pub fn mode(&self) -> u8 {
-        self.mode
-    }
-
-    pub fn version(&self) -> u8 {
-        self.version
-    }
-
-    pub fn codewords(&self) -> u8 {
-        self.codewords
-    }
-
-    pub fn string_length(&self) -> usize {
-        self.string_length
-    }
-
-    pub fn data(&self) -> Vec<u8> {
-        self.data.clone()
-    }
-}
-
+pub use qr_code::QRCode;
 
 #[cfg(test)]
 mod tests {
+    use crate::gf_math::GFMath;
     use crate::QRCode;
 
     #[test]
@@ -143,4 +65,45 @@ mod tests {
                  0b11110000, 0b11101100, 0b00010001, 0b11101100]);
     }
 
+    #[test]
+    fn test_gf_multiply() {
+        let math = GFMath::init();
+
+        let res = math.multiply(3, 5);
+
+        assert_eq!(res, 15);
+    }
+
+    #[test]
+    fn test_gf_division() {
+        let math = GFMath::init();
+
+        let res = math.divide(16, 4);
+
+        assert_eq!(res, 4);
+    }
+
+    #[test]
+    fn test_pol_multiplication() {
+        let math = GFMath::init();
+
+        let pol1 = vec![1, 3, 2];
+        let pol2 = vec![2, 1, 7];
+
+        let res = math.pol_multiply(pol1, pol2);
+
+        assert_eq!(res, vec![2, 7, 0, 11, 14]);
+    }
+
+    #[test]
+    fn test_pol_divide() {
+        let math = GFMath::init();
+
+        let pol1 = vec![4, 4, 7, 5];
+        let pol2 = vec![2, 1];
+
+        let res = math.pol_divide(pol1, pol2);
+
+        assert_eq!(res, vec![7]);
+    }
 }
