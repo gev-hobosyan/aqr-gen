@@ -6,7 +6,7 @@ pub use qr_code::QRCode;
 #[cfg(test)]
 mod tests {
     use crate::gf_math::GFMath;
-    use crate::QRCode;
+    use crate::{qr_code, QRCode};
 
     #[test]
     fn test_encoding_mode() {
@@ -105,5 +105,38 @@ mod tests {
         let res = math.pol_divide(pol1, pol2);
 
         assert_eq!(res, vec![7]);
+    }
+
+    #[test]
+    fn test_size() {
+        let qr_code = QRCode::encode(2, "https://www.qrcode.com/".to_string());
+
+        let size = qr_code.get_size();
+
+        assert_eq!(size, 25);
+    }
+
+    #[test]
+    fn test_fill() {
+        let mut matrix = vec![vec![0; 6]; 6];
+
+        QRCode::fill_area(&mut matrix, 1, 2, 2, 3, 3);
+
+        assert_eq!(matrix,
+        vec![
+            vec![0, 0, 0, 0, 0, 0],
+            vec![0, 0, 3, 3, 0, 0],
+            vec![0, 0, 3, 3, 0, 0],
+            vec![0, 0, 3, 3, 0, 0],
+            vec![0, 0, 0, 0, 0, 0],
+            vec![0, 0, 0, 0, 0, 0],
+        ]);
+    }
+
+    #[test]
+    fn test_get_matrix() {
+        let qr_code = QRCode::encode(2, "https://www.qrcode.com/".to_string());
+
+        let matrix = qr_code.get_matrix();
     }
 }
