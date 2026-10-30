@@ -30,7 +30,7 @@ impl GFMath {
         if a == 0 && b == 0 {
             0
         } else {
-            self.exponents[(self.logs[a as usize] + self.logs[b as usize]) as usize]
+            self.exponents[(self.logs[a as usize] as usize + self.logs[b as usize] as usize) % 255]
         }
     }
 
@@ -66,7 +66,7 @@ impl GFMath {
                 let product = self.pol_multiply(pol2.clone(), vec![factor]);
 
                 subtr[..product.len()].clone_from_slice(&product);
-                
+
                 rest = rest.iter().enumerate().map(|(index, value)| {
                     value ^ subtr[index]
                 }).collect();
@@ -75,7 +75,16 @@ impl GFMath {
                 rest.remove(0);
             }
         }
-        
+
         rest
+    }
+
+    pub fn get_pol_generator(&self, degree: u8) -> Vec<u8> {
+        let mut last_poly = vec![1];
+        for i in 0..(degree as usize) {
+            last_poly = self.pol_multiply(last_poly, vec![1, self.exponents[i]])
+        }
+
+        last_poly
     }
 }
