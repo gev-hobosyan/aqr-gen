@@ -1,36 +1,70 @@
+use crate::error::AQRError;
+use crate::error_correction::ErrorCorrection;
 use crate::gf_math::GFMath;
+use crate::mode::Mode;
+use crate::qr_capacity::QR_CAPACITY;
+use crate::version::Version;
 
+type Result<T> = core::result::Result<T, AQRError>;
+
+#[derive(Debug)]
 pub struct QRCode {
     mode: u8,
     version: u8,
     string_length: usize,
-    codewords: u8,
+    codewords: usize,
     data: Vec<u8>
 }
 
 impl QRCode {
-    pub fn encode(version: u8, string: String) -> QRCode {
-        // TODO: use string_length to decide the version
+    pub fn encode(string: String, version: Option<Version>, error_correction: Option<ErrorCorrection>, mode: Option<Mode>) -> Result<QRCode> {
         let string_length = string.len();
-        // TODO: dynamic mode choosing
-        let mode = 0b0100 << 4;
-        // TODO: assign codewords dependant on the version
-        let codewords = 28u8;
 
-        let mut data = vec![0; codewords as usize];
+        let mode = match mode {
+            Some(mode) => mode,
+            None => string.as_str().try_into()?
+        };
+        let error_correction = error_correction.unwrap_or_else(|| ErrorCorrection::M);
+        let version = match version {
+            Some(version) => version,
+            None => Version::choose(string_length, &mode, &error_correction)?
+        };
+
+        let mode: u8 = mode.into();
+        let mode = mode << 4;
+
+        // TODO: assign codewords dependant on the version
+        let codewords = QR_CAPACITY[version.0 as usize][error_correction as usize];
+
+        let mut data = vec![0; codewords];
 
         Self::encode_data(&mut data, mode, string_length, &string, codewords);
 
-        QRCode {
+        Ok(QRCode {
             mode,
-            version,
+            version: version.0,
             string_length,
             codewords,
             data
-        }
+        })
     }
 
-    fn encode_data(data: &mut Vec<u8>, mode: u8, string_length: usize, string: &String, codewords: u8){
+    fn total_codewords(version: usize) -> usize {
+        let mut raw = (16 * version + 128) * version + 64;
+        if version >= 2 {
+            let a = version / 7 + 2;
+            raw -= (25 * a - 10) * a - 55;
+            if version >= 7 { raw -= 36; }
+        }
+
+        raw / 8
+    }
+
+    fn ec_codeword_count(version: usize, ec: usize) -> usize {
+        Self::total_codewords(version) - QR_CAPACITY[version][ec]
+    }
+
+    fn encode_data(data: &mut Vec<u8>, mode: u8, string_length: usize, string: &String, codewords: usize){
         data[0] = mode | (string_length as u8 >> 4);
         data[1] = (string_length as u8) << 4;
 
@@ -55,7 +89,7 @@ impl QRCode {
         let constant = rsi % 2;
         let placeholders = [236, 17];
 
-        for i in rsi..(codewords as usize) {
+        for i in rsi..codewords {
             let index = (i + constant) % 2;
 
             data[i] = placeholders[index];
@@ -66,10 +100,10 @@ impl QRCode {
         self.version * 4 + 17
     }
 
-    fn edc_codewords(data: Vec<u8>, codewords: u8) -> Vec<u8>{
+    fn edc_codewords(data: Vec<u8>, codewords: usize) -> Vec<u8>{
         let math = GFMath::init();
 
-        let degree = codewords - data.len() as u8;
+        let degree = codewords - data.len();
         let mut message_poly = vec![0; codewords as usize];
         message_poly[0..data.len()].copy_from_slice(data.as_slice());
 
@@ -83,9 +117,12 @@ impl QRCode {
 
         let mut matrix: Vec<Vec<u8>> = vec![vec![0; size]; size];
 
-        let mut codewords = vec![0; 44];
+        let total_codewords = Self::total_codewords(self.version as usize);
+        println!("{}", self.data.len());
+        println!("{total_codewords}");
+        let mut codewords = vec![0; total_codewords];
         codewords[..self.data.len()].copy_from_slice(self.data.as_slice());
-        codewords[self.data.len()..].copy_from_slice(Self::edc_codewords(self.data.clone(), 44).as_slice());
+        codewords[self.data.len()..].copy_from_slice(Self::edc_codewords(self.data.clone(), total_codewords).as_slice());
 
         // Top-left square
         Self::fill_area(&mut matrix, 0, 0, 9, 9, 1);
@@ -169,11 +206,13 @@ impl QRCode {
         let mut index = 0;
 
         for codeword in codewords.clone() {
-            for shift in (0..=7).rev() {
-                let bit = (codeword >> shift) & 1;
-                let (row, col) = sequence[index];
-                index += 1;
-                matrix[row][col] = bit;
+            if index < codewords.len() {
+                for shift in (0..=7).rev() {
+                    let bit = (codeword >> shift) & 1;
+                    let (row, col) = sequence[index];
+                    index += 1;
+                    matrix[row][col] = bit;
+                }
             }
         }
 
@@ -193,7 +232,7 @@ impl QRCode {
 
         let format_mask: Vec<u8> = vec![1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0];
 
-        let format_poly: Vec<u8> = format_poly.iter().enumerate().map(
+        let format_mask: Vec<u8> = format_poly.iter().enumerate().map(
             |(index, bit)| { bit ^ format_mask[index] }
         ).collect();
 
@@ -208,14 +247,6 @@ impl QRCode {
         format_mask[9..].iter().enumerate().for_each(|(index, cell)| {
             matrix[5 - index][8] = *cell;
         });
-
-        for row in matrix.clone() {
-            print!("[");
-            for val in row {
-                print!("{},", val); // Right-aligns elements with width 6
-            }
-            println!("]");
-        }
 
         matrix
     }
@@ -243,7 +274,6 @@ impl QRCode {
         });
     }
 
-
     pub fn mode(&self) -> u8 {
         self.mode
     }
@@ -252,7 +282,7 @@ impl QRCode {
         self.version
     }
 
-    pub fn codewords(&self) -> u8 {
+    pub fn codewords(&self) -> usize {
         self.codewords
     }
 
