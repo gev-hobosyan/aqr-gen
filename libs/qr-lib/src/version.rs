@@ -6,8 +6,12 @@ use crate::{ErrorCorrection, Mode};
 pub struct Version(pub(crate) u8);
 
 impl Version {
-    pub fn from(version: u8) -> Self {
-        Self(version)
+    pub fn from(version: u8) -> Result<Self, AQRError> {
+        if version < 1 || version > 40 {
+            return Err(AQRError::UnsupportedVersion);
+        }
+
+        Ok(Self(version))
     }
 
     pub fn choose(
@@ -20,7 +24,7 @@ impl Version {
             (0..=40).find(|&v| Self::codewords_needed(v, data_count, mode) <= QR_CAPACITY[v][ec]);
 
         match version {
-            Some(v) => Ok(Self::from(v as u8)),
+            Some(v) => Ok(Self::from(v as u8)?),
             None => Err(AQRError::UnsupportedVersion),
         }
     }

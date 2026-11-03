@@ -1,4 +1,4 @@
-mod error;
+pub mod error;
 mod error_correction;
 mod gf_math;
 mod mode;

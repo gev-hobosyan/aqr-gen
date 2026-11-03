@@ -120,9 +120,6 @@ impl QRCode {
 
         let mut matrix: Vec<Vec<u8>> = vec![vec![0; size]; size];
 
-        let total_codewords = Self::total_codewords(self.version as usize);
-        println!("{}", self.data.len());
-        println!("{total_codewords}");
         let mut codewords = self.build_codewords(&math);
         // codewords[..self.data.len()].copy_from_slice(self.data.as_slice());
         // codewords[self.data.len()..].copy_from_slice(Self::edc_codewords(self.data.clone(), total_codewords).as_slice());
