@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::Write;
 
 fn main() {
-    let qr_code = QRCode::encode("Hello world there".to_string(), None, None, None).unwrap();
+    let qr_code = QRCode::encode("Hello world there how are you".to_string(), None, None, None).unwrap();
 
     let matrix = qr_code.get_matrix();
 

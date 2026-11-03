@@ -1,7 +1,7 @@
 // QR Capacity table
 // Index 0 is placeholder
 // Every version array represents [ L, M, Q, H ]
-pub const QR_CAPACITY: [[usize; 4]; 41] = [
+pub(crate) const QR_CAPACITY: [[usize; 4]; 41] = [
     [0, 0, 0, 0],
     [19, 16, 13, 9],
     [34, 28, 22, 16],
@@ -43,4 +43,21 @@ pub const QR_CAPACITY: [[usize; 4]; 41] = [
     [2702, 2102, 1502, 1142],
     [2812, 2216, 1582, 1222],
     [2956, 2334, 1666, 1276],
+];
+
+// Caped at level 10 (will be changed)
+// The rows represent the error correction levels
+// The columns represent the versions
+pub(crate) const EC_PER_BLOCK: [[usize; 10]; 4] = [
+    [7, 10, 15, 20, 26, 18, 20, 24, 30, 18],
+    [10, 16, 26, 18, 24, 16, 18, 22, 22, 26],
+    [13, 22, 18, 26, 18, 24, 18, 22, 20, 24],
+    [17, 28, 22, 16, 22, 28, 26, 26, 24, 28],
+];
+
+pub(crate) const NUM_BLOCKS: [[usize; 10]; 4] = [
+    [1, 1, 1, 1, 1, 2, 2, 2, 2, 4],
+    [1, 1, 1, 2, 2, 4, 4, 4, 5, 5],
+    [1, 1, 2, 2, 4, 4, 6, 6, 8, 8],
+    [1, 1, 2, 4, 4, 4, 5, 6, 8, 8],
 ];

@@ -1,5 +1,5 @@
 use crate::error::AQRError;
-use crate::qr_capacity::QR_CAPACITY;
+use crate::qr_constants::QR_CAPACITY;
 use crate::{ErrorCorrection, Mode};
 
 #[derive(Debug, PartialEq)]

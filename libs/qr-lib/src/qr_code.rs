@@ -2,7 +2,7 @@ use crate::error::AQRError;
 use crate::error_correction::ErrorCorrection;
 use crate::gf_math::GFMath;
 use crate::mode::Mode;
-use crate::qr_capacity::QR_CAPACITY;
+use crate::qr_constants::{EC_PER_BLOCK, NUM_BLOCKS, QR_CAPACITY};
 use crate::version::Version;
 
 type Result<T> = core::result::Result<T, AQRError>;
@@ -12,6 +12,7 @@ pub struct QRCode {
     mode: u8,
     version: u8,
     string_length: usize,
+    error_correction: usize,
     codewords: usize,
     data: Vec<u8>
 }
@@ -33,8 +34,9 @@ impl QRCode {
         let mode: u8 = mode.into();
         let mode = mode << 4;
 
-        // TODO: assign codewords dependant on the version
-        let codewords = QR_CAPACITY[version.0 as usize][error_correction as usize];
+        let codewords = QR_CAPACITY[version.0 as usize][error_correction.clone() as usize];
+
+        let error_correction: usize = error_correction.into();
 
         let mut data = vec![0; codewords];
 
@@ -45,7 +47,8 @@ impl QRCode {
             version: version.0,
             string_length,
             codewords,
-            data
+            data,
+            error_correction
         })
     }
 
@@ -120,9 +123,9 @@ impl QRCode {
         let total_codewords = Self::total_codewords(self.version as usize);
         println!("{}", self.data.len());
         println!("{total_codewords}");
-        let mut codewords = vec![0; total_codewords];
-        codewords[..self.data.len()].copy_from_slice(self.data.as_slice());
-        codewords[self.data.len()..].copy_from_slice(Self::edc_codewords(self.data.clone(), total_codewords).as_slice());
+        let mut codewords = self.build_codewords(&math);
+        // codewords[..self.data.len()].copy_from_slice(self.data.as_slice());
+        // codewords[self.data.len()..].copy_from_slice(Self::edc_codewords(self.data.clone(), total_codewords).as_slice());
 
         // Top-left square
         Self::fill_area(&mut matrix, 0, 0, 9, 9, 1);
@@ -131,7 +134,10 @@ impl QRCode {
         // Bottom-left square
         Self::fill_area(&mut matrix, size - 8, 0, 9, 8, 1);
         // Alignment pattern
-        Self::fill_area(&mut matrix, size - 9, size - 9, 5, 5, 1);
+
+        if self.version != 1 {
+            Self::fill_area(&mut matrix, size - 9, size - 9, 5, 5, 1);
+        }
 
         Self::fill_area(&mut matrix, 6, 9, self.version as usize * 4, 1, 1);
         Self::fill_area(&mut matrix, 9, 6, 1, self.version as usize * 4, 1);
@@ -186,9 +192,11 @@ impl QRCode {
         Self::fill_area(&mut matrix, size - 7, 7, 1, 7, 0);
 
         // Alignment pattern
-        Self::fill_area(&mut matrix, size - 9, size - 9, 5, 5, 1);
-        Self::fill_area(&mut matrix, size - 8, size - 8, 3, 3, 0);
-        matrix[size - 7][size - 7] = 1;
+        if self.version != 1 {
+            Self::fill_area(&mut matrix, size - 9, size - 9, 5, 5, 1);
+            Self::fill_area(&mut matrix, size - 8, size - 8, 3, 3, 0);
+            matrix[size - 7][size - 7] = 1;
+        }
 
         // Timing patterns
         for pos in (8..size-8).step_by(2) {
@@ -206,13 +214,11 @@ impl QRCode {
         let mut index = 0;
 
         for codeword in codewords.clone() {
-            if index < codewords.len() {
-                for shift in (0..=7).rev() {
-                    let bit = (codeword >> shift) & 1;
-                    let (row, col) = sequence[index];
-                    index += 1;
-                    matrix[row][col] = bit;
-                }
+            for shift in (0..=7).rev() {
+                let bit = (codeword >> shift) & 1;
+                let (row, col) = sequence[index];
+                index += 1;
+                matrix[row][col] = bit;
             }
         }
 
@@ -272,6 +278,47 @@ impl QRCode {
                 matrix[*row][*col] = module_bit ^ (if (row + col) & 1 == 0 { 1 } else { 0 });
             }
         });
+    }
+
+    fn build_codewords(&self, math: &GFMath) -> Vec<u8> {
+        let version = self.version() as usize;
+        let ec = self.error_correction;
+        let raw = Self::total_codewords(version);
+        let n_blocks = NUM_BLOCKS[ec][version - 1];
+        let ec_len = EC_PER_BLOCK[ec][version - 1];
+        let n_short = n_blocks - raw % n_blocks;
+        let short_len = raw / n_blocks;
+
+        let mut blocks: Vec<(Vec<u8>, Vec<u8>)> = Vec::new();
+        let mut k = 0;
+        for i in 0..n_blocks {
+            let data_len = short_len - ec_len + if i < n_short { 0 } else { 1 };
+            let d = self.data[k..k + data_len].to_vec();
+            k += data_len;
+
+            let mut msg = d.clone();
+            msg.extend(std::iter::repeat(0).take(ec_len));
+            let rem = math.pol_divide(msg, math.get_pol_generator(ec_len));
+            blocks.push((d, rem));
+        }
+
+        let mut out = Vec::with_capacity(raw);
+        let max_data = short_len - ec_len + 1;
+        for i in 0..max_data {
+            for (d, _) in &blocks {
+                if i < d.len() {
+                    out.push(d[i]);
+                }
+            }
+        }
+
+        for i in 0..ec_len {
+            for (_, e) in &blocks {
+                out.push(e[i]);
+            }
+        }
+
+        out
     }
 
     pub fn mode(&self) -> u8 {

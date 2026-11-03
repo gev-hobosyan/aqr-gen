@@ -2,7 +2,7 @@ mod error;
 mod error_correction;
 mod gf_math;
 mod mode;
-mod qr_capacity;
+mod qr_constants;
 mod qr_code;
 mod version;
 

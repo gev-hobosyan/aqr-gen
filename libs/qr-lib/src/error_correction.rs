@@ -1,6 +1,6 @@
 use crate::error::AQRError;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum ErrorCorrection {
     L,
     M,
