@@ -1,21 +1,25 @@
-use std::fmt::{Display, Formatter};
+use std::fmt::{write, Display, Formatter};
 use std::fs::File;
 use std::io::Write;
 use clap::ValueEnum;
-use image::{ImageBuffer, ImageResult, Rgb};
+use image::{ImageBuffer, ImageError, ImageResult, Rgb};
 use qr_lib::error::AQRError;
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum OutputFormat {
     Png,
-    Ppm
+    Ppm,
+    Jpg,
+    Jpeg
 }
 
 impl Display for OutputFormat {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             OutputFormat::Png => write!(f, "png"),
-            OutputFormat::Ppm => write!(f, "ppm")
+            OutputFormat::Ppm => write!(f, "ppm"),
+            OutputFormat::Jpg => write!(f, "jpg"),
+            OutputFormat::Jpeg => write!(f, "jpeg")
         }
     }
 }
@@ -29,6 +33,12 @@ impl OutputFormat {
             OutputFormat::Ppm => {
                 PPM::write_file(matrix, file_name)?;
             }
+            OutputFormat::Jpg => {
+                JPG::write_file(matrix, file_name)?;
+            }
+            OutputFormat::Jpeg => {
+                JPEG::write_file(matrix, file_name)?;
+            }
         }
 
         Ok(())
@@ -40,6 +50,9 @@ pub(crate) trait Output {
 }
 
 pub(crate) struct PPM;
+pub(crate) struct JPG;
+pub(crate) struct JPEG;
+pub(crate) struct PNG;
 
 impl Output for PPM {
     fn write_file(data: Vec<Vec<u8>>, file_name: &String) -> Result<(), AQRError> {
@@ -73,25 +86,46 @@ impl Output for PPM {
     }
 }
 
-pub(crate) struct PNG;
 
 impl Output for PNG {
     fn write_file(data: Vec<Vec<u8>>, file_name: &String) -> Result<(), AQRError> {
-        let mut image = ImageBuffer::new(data.len() as u32, data.len() as u32);
-
-        for (x, y, pixel) in image.enumerate_pixels_mut() {
-            let color = if data[x as usize][y as usize] == 1 {
-                0u8
-            } else {
-                255u8
-            };
-
-            *pixel = Rgb([ color; 3 ]);
-        }
-
-        match image.save(format!("{file_name}.png")){
+        match matrix_to_img_buf(data).save(format!("{file_name}.png")){
             Ok(_) => Ok(()),
             Err(err) => Err(AQRError::Error(err.to_string()))
         }
     }
+}
+
+impl Output for JPEG {
+    fn write_file(data: Vec<Vec<u8>>, file_name: &String) -> Result<(), AQRError> {
+        match matrix_to_img_buf(data).save(format!("{file_name}.jpeg")){
+            Ok(_) => Ok(()),
+            Err(err) => Err(AQRError::Error(err.to_string()))
+        }
+    }
+}
+
+impl Output for JPG {
+    fn write_file(data: Vec<Vec<u8>>, file_name: &String) -> Result<(), AQRError> {
+        match matrix_to_img_buf(data).save(format!("{file_name}.jpg")){
+            Ok(_) => Ok(()),
+            Err(err) => Err(AQRError::Error(err.to_string()))
+        }
+    }
+}
+
+fn matrix_to_img_buf(matrix: Vec<Vec<u8>>) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
+    let mut image = ImageBuffer::new(matrix.len() as u32, matrix.len() as u32);
+
+    for (x, y, pixel) in image.enumerate_pixels_mut() {
+        let color = if matrix[x as usize][y as usize] == 1 {
+            0u8
+        } else {
+            255u8
+        };
+
+        *pixel = Rgb([ color; 3 ]);
+    }
+
+    image
 }
