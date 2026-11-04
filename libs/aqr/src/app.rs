@@ -1,10 +1,18 @@
 use clap::Parser;
 use qr_lib::{ErrorCorrection, Mode, QRCode, Version};
 use crate::cli::CLI;
+use crate::output::OutputFormat;
 use super::Result;
 
 pub(crate) fn run() -> Result<String> {
     let cli = CLI::parse();
+
+    if cli.help {
+        let _ = cli.print_help();
+        return Ok("".to_string());
+    }
+
+    let data = cli.data.unwrap();
 
     let version = match cli.version {
         Some(v) => { Some(Version::from(v)?) }
@@ -29,13 +37,17 @@ pub(crate) fn run() -> Result<String> {
         None => { None }
     };
 
-    let file_name = cli.name.unwrap_or("qr".to_string());
+    let file_name = cli.file_path.unwrap_or("qr".to_string());
 
-    let qr_code = QRCode::encode(cli.data.clone(), version, error_correction, mode)?;
+    let qr_code = QRCode::encode(data, version, error_correction, mode)?;
 
     let matrix = qr_code.get_matrix();
 
     cli.output.write_file(matrix, &file_name)?;
+
+    if cli.output == OutputFormat::Terminal {
+        return Ok(format!("A QR Code has been generated"));
+    }
 
     Ok(format!("A {file_name}.{} has been generated", cli.output))
 }

@@ -13,7 +13,9 @@ fn main() {
 
     match result {
         Ok(msg) => {
-            println!("{} {msg}", "[SUCCESS]".bold().green())
+            if !msg.is_empty() {
+                println!("{} {msg}", "[SUCCESS]".bold().green())
+            }
         }
         Err(err) => {
             println!("{} {err}", "[ERROR]".bold().red());
