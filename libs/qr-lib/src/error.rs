@@ -8,6 +8,7 @@ pub enum AQRError {
     TemporallyUnsupportedErrorCorrectionLevel,
     TemporallyUnsupportedVersion,
     TemporallyUnsupportedMode,
+    Error(String)
 }
 
 impl Display for AQRError {
@@ -34,6 +35,9 @@ impl Display for AQRError {
             }
             AQRError::TemporallyUnsupportedMode => {
                 msg = "The QR code mode is not supported. Support will be added later".to_string();
+            }
+            AQRError::Error(err) => {
+                msg = err.to_string()
             }
         }
 

@@ -2,6 +2,7 @@ use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::Write;
 use clap::ValueEnum;
+use image::{ImageBuffer, ImageResult, Rgb};
 use qr_lib::error::AQRError;
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
@@ -23,13 +24,13 @@ impl OutputFormat {
     pub(crate) fn write_file(self, matrix: Vec<Vec<u8>>, file_name: &String) -> Result<(), AQRError> {
         match self {
             OutputFormat::Png => {
-                todo!()
+                PNG::write_file(matrix, file_name)?;
             }
             OutputFormat::Ppm => {
                 PPM::write_file(matrix, file_name)?;
             }
         }
-        
+
         Ok(())
     }
 }
@@ -67,7 +68,30 @@ impl Output for PPM {
 
             file.write(color_row.as_bytes()).unwrap();
         }
-        
+
         Ok(())
+    }
+}
+
+pub(crate) struct PNG;
+
+impl Output for PNG {
+    fn write_file(data: Vec<Vec<u8>>, file_name: &String) -> Result<(), AQRError> {
+        let mut image = ImageBuffer::new(data.len() as u32, data.len() as u32);
+
+        for (x, y, pixel) in image.enumerate_pixels_mut() {
+            let color = if data[x as usize][y as usize] == 1 {
+                0u8
+            } else {
+                255u8
+            };
+
+            *pixel = Rgb([ color; 3 ]);
+        }
+
+        match image.save(format!("{file_name}.png")){
+            Ok(_) => Ok(()),
+            Err(err) => Err(AQRError::Error(err.to_string()))
+        }
     }
 }
