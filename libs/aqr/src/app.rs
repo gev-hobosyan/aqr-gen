@@ -3,7 +3,7 @@ use qr_lib::{ErrorCorrection, Mode, QRCode, Version};
 use crate::cli::CLI;
 use super::Result;
 
-pub(crate) fn run() -> Result<()> {
+pub(crate) fn run() -> Result<String> {
     let cli = CLI::parse();
 
     let version = match cli.version {
@@ -35,7 +35,7 @@ pub(crate) fn run() -> Result<()> {
 
     let matrix = qr_code.get_matrix();
 
-    cli.output.write_file(matrix, file_name)?;
+    cli.output.write_file(matrix, &file_name)?;
 
-    Ok(())
+    Ok(format!("A {file_name}.{} has been generated", cli.output))
 }

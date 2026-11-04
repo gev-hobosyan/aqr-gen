@@ -31,6 +31,9 @@ impl QRCode {
         let supported_modes = vec![
             Mode::Byte
         ];
+        let supported_ec = vec![
+            ErrorCorrection::M
+        ];
 
         let string_length = string.len();
 
@@ -45,11 +48,15 @@ impl QRCode {
         };
 
         if !supported_versions.contains(&version) {
-            return Err(AQRError::UnsupportedVersion);
+            return Err(AQRError::TemporallyUnsupportedVersion);
         }
 
         if !supported_modes.contains(&mode) {
-            return Err(AQRError::UnsupportedMode);
+            return Err(AQRError::TemporallyUnsupportedMode);
+        }
+
+        if !supported_ec.contains(&error_correction) {
+            return Err(AQRError::TemporallyUnsupportedErrorCorrectionLevel);
         }
 
         let mode: u8 = mode.into();
@@ -128,7 +135,7 @@ impl QRCode {
         let math = GFMath::init();
 
         let degree = codewords - data.len();
-        let mut message_poly = vec![0; codewords as usize];
+        let mut message_poly = vec![0; codewords];
         message_poly[0..data.len()].copy_from_slice(data.as_slice());
 
         math.pol_divide(message_poly, math.get_pol_generator(degree))
@@ -141,7 +148,7 @@ impl QRCode {
 
         let mut matrix: Vec<Vec<u8>> = vec![vec![0; size]; size];
 
-        let mut codewords = self.build_codewords(&math);
+        let codewords = self.build_codewords(&math);
         // codewords[..self.data.len()].copy_from_slice(self.data.as_slice());
         // codewords[self.data.len()..].copy_from_slice(Self::edc_codewords(self.data.clone(), total_codewords).as_slice());
 

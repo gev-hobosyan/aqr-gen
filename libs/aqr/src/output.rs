@@ -1,4 +1,4 @@
-use std::fmt::format;
+use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::Write;
 use clap::ValueEnum;
@@ -10,8 +10,17 @@ pub(crate) enum OutputFormat {
     Ppm
 }
 
+impl Display for OutputFormat {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OutputFormat::Png => write!(f, "png"),
+            OutputFormat::Ppm => write!(f, "ppm")
+        }
+    }
+}
+
 impl OutputFormat {
-    pub(crate) fn write_file(self, matrix: Vec<Vec<u8>>, file_name: String) -> Result<(), AQRError> {
+    pub(crate) fn write_file(self, matrix: Vec<Vec<u8>>, file_name: &String) -> Result<(), AQRError> {
         match self {
             OutputFormat::Png => {
                 todo!()
@@ -26,13 +35,13 @@ impl OutputFormat {
 }
 
 pub(crate) trait Output {
-    fn write_file(data: Vec<Vec<u8>>, file_name: String) -> Result<(), AQRError>;
+    fn write_file(data: Vec<Vec<u8>>, file_name: &String) -> Result<(), AQRError>;
 }
 
 pub(crate) struct PPM;
 
 impl Output for PPM {
-    fn write_file(data: Vec<Vec<u8>>, file_name: String) -> Result<(), AQRError> {
+    fn write_file(data: Vec<Vec<u8>>, file_name: &String) -> Result<(), AQRError> {
         let mut file = File::create(format!("{file_name}.ppm").as_str()).unwrap();
 
         file.write("P3\n".as_bytes()).unwrap();

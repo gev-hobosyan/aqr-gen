@@ -2,6 +2,7 @@ mod cli;
 mod app;
 mod output;
 
+use colored::Colorize;
 use qr_lib::error::AQRError;
 use crate::app::run;
 
@@ -11,11 +12,11 @@ fn main() {
     let result = run();
 
     match result {
-        Ok(_) => {
-            println!("Success")
+        Ok(msg) => {
+            println!("{} {msg}", "[SUCCESS]".bold().green())
         }
         Err(err) => {
-            println!("{err}");
+            println!("{} {err}", "[ERROR]".bold().red());
         }
     }
 }

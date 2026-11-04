@@ -1,4 +1,4 @@
-use clap::{Parser, ValueEnum};
+use clap::{Parser};
 use crate::output::OutputFormat;
 
 #[derive(Parser, Debug)]
