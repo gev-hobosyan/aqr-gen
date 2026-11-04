@@ -19,6 +19,19 @@ pub struct QRCode {
 
 impl QRCode {
     pub fn encode(string: String, version: Option<Version>, error_correction: Option<ErrorCorrection>, mode: Option<Mode>) -> Result<QRCode> {
+        // To be removed later
+        let supported_versions = vec![
+            Version::from(1).unwrap(),
+            Version::from(2).unwrap(),
+            Version::from(3).unwrap(),
+            Version::from(4).unwrap(),
+            Version::from(5).unwrap(),
+            Version::from(6).unwrap(),
+        ];
+        let supported_modes = vec![
+            Mode::Byte
+        ];
+
         let string_length = string.len();
 
         let mode = match mode {
@@ -30,6 +43,14 @@ impl QRCode {
             Some(version) => version,
             None => Version::choose(string_length, &mode, &error_correction)?
         };
+
+        if !supported_versions.contains(&version) {
+            return Err(AQRError::UnsupportedVersion);
+        }
+
+        if !supported_modes.contains(&mode) {
+            return Err(AQRError::UnsupportedMode);
+        }
 
         let mode: u8 = mode.into();
         let mode = mode << 4;

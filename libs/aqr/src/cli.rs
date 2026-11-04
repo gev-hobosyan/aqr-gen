@@ -1,6 +1,5 @@
 use clap::{Parser, ValueEnum};
-use qr_lib::error::AQRError;
-use super::Result;
+use crate::output::OutputFormat;
 
 #[derive(Parser, Debug)]
 #[command(name = "aqr")]
@@ -24,12 +23,6 @@ pub struct CLI {
 
     #[arg(short, long)]
     pub(crate) name: Option<String>,
-}
-
-#[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum OutputFormat {
-    Png,
-    Ppm
 }
 
 impl CLI {

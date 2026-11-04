@@ -1,5 +1,6 @@
 mod cli;
 mod app;
+mod output;
 
 use qr_lib::error::AQRError;
 use crate::app::run;
