@@ -13,7 +13,8 @@ pub(crate) enum OutputFormat {
     Ppm,
     Jpg,
     Jpeg,
-    Svg
+    Svg,
+    Terminal
 }
 
 impl Display for OutputFormat {
@@ -23,7 +24,8 @@ impl Display for OutputFormat {
             OutputFormat::Ppm => write!(f, "ppm"),
             OutputFormat::Jpg => write!(f, "jpg"),
             OutputFormat::Jpeg => write!(f, "jpeg"),
-            OutputFormat::Svg => write!(f, "svg")
+            OutputFormat::Svg => write!(f, "svg"),
+            OutputFormat::Terminal => write!(f, "terminal")
         }
     }
 }
@@ -46,6 +48,9 @@ impl OutputFormat {
             OutputFormat::Svg => {
                 SVG::write_file(matrix, file_name)?;
             }
+            OutputFormat::Terminal => {
+                Terminal::write_file(matrix, file_name)?;
+            }
         }
 
         Ok(())
@@ -61,6 +66,7 @@ pub(crate) struct JPG;
 pub(crate) struct JPEG;
 pub(crate) struct PNG;
 pub(crate) struct SVG;
+pub(crate) struct Terminal;
 
 impl Output for PPM {
     fn write_file(data: Vec<Vec<u8>>, file_name: &String) -> Result<(), AQRError> {
@@ -146,6 +152,32 @@ impl Output for SVG {
             Ok(_) => Ok(()),
             Err(err) => Err(AQRError::Error(err.to_string()))
         }
+    }
+}
+
+impl Output for Terminal {
+    fn write_file(data: Vec<Vec<u8>>, file_name: &String) -> Result<(), AQRError> {
+        // To compensate for additional columns
+        for _ in 0..=data.len() + 1 {
+            print!("⬜");
+        }
+        println!();
+
+        for row in &data {
+            print!("⬜");
+            for col in row {
+                print!("{}", if *col == 1 { "⬛" } else {"⬜"})
+            }
+            println!("⬜");
+        }
+
+        // To compensate for additional columns
+        for _ in 0..=data.len() + 1 {
+            print!("⬜");
+        }
+        println!();
+
+        Ok(())
     }
 }
 
