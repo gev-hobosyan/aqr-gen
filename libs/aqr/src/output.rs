@@ -3,6 +3,8 @@ use std::fs::File;
 use std::io::Write;
 use clap::ValueEnum;
 use image::{ImageBuffer, ImageError, ImageResult, Rgb};
+use svg::Document;
+use svg::node::element::Rectangle;
 use qr_lib::error::AQRError;
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
@@ -10,7 +12,8 @@ pub(crate) enum OutputFormat {
     Png,
     Ppm,
     Jpg,
-    Jpeg
+    Jpeg,
+    Svg
 }
 
 impl Display for OutputFormat {
@@ -19,7 +22,8 @@ impl Display for OutputFormat {
             OutputFormat::Png => write!(f, "png"),
             OutputFormat::Ppm => write!(f, "ppm"),
             OutputFormat::Jpg => write!(f, "jpg"),
-            OutputFormat::Jpeg => write!(f, "jpeg")
+            OutputFormat::Jpeg => write!(f, "jpeg"),
+            OutputFormat::Svg => write!(f, "svg")
         }
     }
 }
@@ -39,6 +43,9 @@ impl OutputFormat {
             OutputFormat::Jpeg => {
                 JPEG::write_file(matrix, file_name)?;
             }
+            OutputFormat::Svg => {
+                SVG::write_file(matrix, file_name)?;
+            }
         }
 
         Ok(())
@@ -53,6 +60,7 @@ pub(crate) struct PPM;
 pub(crate) struct JPG;
 pub(crate) struct JPEG;
 pub(crate) struct PNG;
+pub(crate) struct SVG;
 
 impl Output for PPM {
     fn write_file(data: Vec<Vec<u8>>, file_name: &String) -> Result<(), AQRError> {
@@ -108,6 +116,33 @@ impl Output for JPEG {
 impl Output for JPG {
     fn write_file(data: Vec<Vec<u8>>, file_name: &String) -> Result<(), AQRError> {
         match matrix_to_img_buf(data).save(format!("{file_name}.jpg")){
+            Ok(_) => Ok(()),
+            Err(err) => Err(AQRError::Error(err.to_string()))
+        }
+    }
+}
+
+impl Output for SVG {
+    fn write_file(data: Vec<Vec<u8>>, file_name: &String) -> Result<(), AQRError> {
+        let mut document = Document::new()
+            .set("viewBox", (0, 0, data.len(), data.len()))
+            .set("width", data.len())
+            .set("height", data.len());
+
+        for (y, row) in data.iter().enumerate() {
+            for (x, col) in row.iter().enumerate() {
+                let rect = Rectangle::new()
+                    .set("x", x)
+                    .set("y", y)
+                    .set("width", 1)
+                    .set("height", 1)
+                    .set("fill", if *col == 1 { "#000" } else { "#fff" });
+
+                document = document.add(rect);
+            }
+        }
+
+        match svg::save(format!("{file_name}.svg"), &document) {
             Ok(_) => Ok(()),
             Err(err) => Err(AQRError::Error(err.to_string()))
         }
