@@ -1,7 +1,0 @@
-[package]
-name = "qr-image"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
-qr-lib = { path = "../qr-lib" }

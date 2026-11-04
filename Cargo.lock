@@ -165,13 +165,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "qr-image"
-version = "0.1.0"
-dependencies = [
- "qr-lib",
-]
-
-[[package]]
 name = "qr-lib"
 version = "0.1.0"
 dependencies = [
