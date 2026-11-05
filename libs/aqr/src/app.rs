@@ -46,7 +46,7 @@ pub(crate) fn run() -> Result<String> {
     cli.output.write_file(matrix, &file_name)?;
 
     if cli.output == OutputFormat::Terminal {
-        return Ok(format!("A QR Code has been generated"));
+        return Ok("A QR Code has been generated".to_string());
     }
 
     Ok(format!("A {file_name}.{} has been generated", cli.output))
