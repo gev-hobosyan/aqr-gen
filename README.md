@@ -16,7 +16,9 @@
 
 ---
 
-**AQR** is a simple rust based CLI tool that allows you to generate fully customizable QR codes locally.
+**Argo's QR Gen** aka **AQR** is a simple CLI tool that allows the user to generate a fully customizable QR code right in the terminal.<br/> 
+Are you tired of opening your browser, searching for a free tool to generate one qr code? Well I was too. So I wrote the solution.<br/>
+It allows you to choose the version, the mode and the correction level you want, and if you don't need all that customization you can simply input your data and get a QR code. It supports: png, ppm, jpg, jpeg, svg and a terminal output using white and black emojies.
 
 ---
 
